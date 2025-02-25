@@ -74,9 +74,6 @@ pub fn detect_single_xor(string: &str) -> (String, f64) {
             .collect();
         let string_decoded = String::from_utf16(&byte_decoded).unwrap();
         let score = calc_letter_freq_score(&string_decoded);
-        if score > 3.0 {
-            println!("Message: {}, Score: {}", string_decoded, score);
-        }
 
         if score > best_score {
             best_score = score;
@@ -84,4 +81,16 @@ pub fn detect_single_xor(string: &str) -> (String, f64) {
         }
     }
     (best_match, best_score)
+}
+
+pub fn repeating_key_xor(string: &str, key: &str) -> String {
+    let key_expanded: String = key.chars().cycle().take(string.len()).collect::<String>();
+    let byte_key = key_expanded.as_bytes();
+    let byte_string = string.as_bytes();
+    let string_encoded: Vec<u8> = byte_string
+        .iter()
+        .zip(byte_key.iter())
+        .map(|(&string_byte, &key_byte)| string_byte ^ key_byte)
+        .collect();
+    hex::encode(string_encoded)
 }
