@@ -1,6 +1,8 @@
 use clap::Parser;
 use hex;
-use set_1::calc_letter_freq_score;
+use set_1::{calc_letter_freq_score, detect_single_xor};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 #[derive(Parser)]
 struct Cli {
@@ -17,10 +19,10 @@ fn main() -> Result<(), std::io::Error> {
     SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t
     So go ahead and make that happen. You'll need to use this code for the rest of the exercises.
     */
-    println!("Converting hex into base64:");
+    println!("\nS01C01 Converting hex into base64:");
     let hex_string = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
     let b64_string = set_1::hex_to_b64(hex_string);
-    println!("{}\n", b64_string);
+    println!("{}", b64_string);
 
     /* S01C02
     Write a function that takes two equal-length buffers and produces their XOR combination.
@@ -31,12 +33,12 @@ fn main() -> Result<(), std::io::Error> {
     ... should produce:
     746865206b696420646f6e277420706c6179
     */
-    println!("XOR of 2 equal length buffers:");
+    println!("\nS01C02 XOR of 2 equal length buffers:");
     let s1 = hex::decode("1c0111001f010100061a024b53535009181c").unwrap();
     let s2 = hex::decode("686974207468652062756c6c277320657965").unwrap();
     let xor_string: Vec<u8> = s1.iter().zip(s2.iter()).map(|(&b1, &b2)| b1 ^ b2).collect();
     let output = hex::encode(xor_string);
-    println!("{:?}\n", output);
+    println!("{:?}", output);
 
     /* S01C03
     The hex encoded string:
@@ -45,11 +47,11 @@ fn main() -> Result<(), std::io::Error> {
     You can do this by hand. But don't: write code to do it for you.
     How? Devise some method for "scoring" a piece of English plaintext. Character frequency is a good metric. Evaluate each output and choose the one with the best score.
     */
-    println!("Single byte XOR cipher");
+    println!("\nS01C03 Single byte XOR cipher");
     let s1c3_hex_string = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
     let s1c3_byte_string = hex::decode(s1c3_hex_string).unwrap();
     let mut s1c3_message = String::new();
-    let mut best_score = f64::MIN;
+    let mut s1c3_best_score = f64::MIN;
     let mut key_byte: u8 = 0;
     for letter in 0..=255 {
         key_byte = letter as u8;
@@ -60,12 +62,35 @@ fn main() -> Result<(), std::io::Error> {
         let s1c3_string_decoded = String::from_utf8_lossy(&s1c3_byte_decoded);
         let score = calc_letter_freq_score(&s1c3_string_decoded);
 
-        if score > best_score {
-            best_score = score;
+        if score > s1c3_best_score {
+            s1c3_best_score = score;
             s1c3_message = String::from(s1c3_string_decoded);
         }
     }
     println!("Letter: {}, Message: {}", key_byte as char, s1c3_message);
+
+    println!("\nS01C04 Detect single-character XOR");
+    /* S01C04
+    One of the 60-character strings in this file[https://cryptopals.com/static/challenge-data/4.txt] has been encrypted by single-character XOR.
+    Find it.
+    */
+    let file = File::open("src/4.txt").expect("Error reading file.");
+    let lines = BufReader::new(file).lines();
+
+    let mut s1c4_best_score = f64::MIN;
+    let mut s1c4_best_match = String::new();
+
+    for line in lines {
+        let line = line.unwrap();
+        let s1c4_result = detect_single_xor(&line);
+        let s1c4_message = s1c4_result.0;
+        let s1c4_score = s1c4_result.1;
+        if s1c4_score > s1c4_best_score {
+            s1c4_best_score = s1c4_score;
+            s1c4_best_match = String::from(s1c4_message);
+        }
+    }
+    println!("{}", s1c4_best_match);
 
     Ok(())
 }
