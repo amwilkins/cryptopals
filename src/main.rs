@@ -1,7 +1,9 @@
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use clap::Parser;
 use hex;
 use set_1;
 use set_1::{calc_letter_freq_score, detect_single_xor};
+use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
@@ -114,6 +116,33 @@ fn s1c5() {
     let s1c5_encoded = set_1::repeating_key_xor(s1c5_string, s1c5_key);
     println!("{}", s1c5_encoded)
 }
+fn s1c6() {
+    println!("\nS01C06 Break repeating-key XOR");
+    /*
+    There's a file here. It's been base64'd after being encrypted with repeating-key XOR.
+    Decrypt it.
+    Here's how:
+        1. Let KEYSIZE be the guessed length of the key; try values from 2 to (say) 40.
+        2. Write a function to compute the edit distance/Hamming distance between two strings. The Hamming distance is just the number of differing bits. The distance between:
+        this is a test
+        and
+        wokka wokka!!!
+        is 37. Make sure your code agrees before you proceed.
+        3. For each KEYSIZE, take the first KEYSIZE worth of bytes, and the second KEYSIZE worth of bytes, and find the edit distance between them. Normalize this result by dividing by KEYSIZE.
+        4. The KEYSIZE with the smallest normalized edit distance is probably the key. You could proceed perhaps with the smallest 2-3 KEYSIZE values. Or take 4 KEYSIZE blocks instead of 2 and average the distances.
+        5. Now that you probably know the KEYSIZE: break the ciphertext into blocks of KEYSIZE length.
+        6. Now transpose the blocks: make a block that is the first byte of every block, and a block that is the second byte of every block, and so on.
+        7. Solve each block as if it was single-character XOR. You already have code to do this.
+        8. For each block, the single-byte XOR key that produces the best looking histogram is the repeating-key XOR key byte for that block. Put them together and you have the key.
+                                                L
+    This code is going to turn out to be surprisingly useful later on. Breaking repeating-key XOR ("Vigenere") statistically is obviously an academic exercise, a "Crypto 101" thing. But more people "know how" to break it than can actually break it, and a similar technique breaks something much more important.
+    */
+
+    //let s1c6_file = fs::read_to_string("src/6.txt")
+    //    .and_then(|text| Ok(text.replace("\n", "")))
+    //    .expect("Error reading file.");
+    //let s1c6_file_bytes = set_1::b64_to_byte(&s1c6_file);
+}
 
 fn main() -> Result<(), std::io::Error> {
     //let args = Cli::parse();
@@ -122,6 +151,7 @@ fn main() -> Result<(), std::io::Error> {
     s1c3();
     s1c4();
     s1c5();
+    s1c6();
 
     Ok(())
 }

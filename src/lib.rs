@@ -94,3 +94,13 @@ pub fn repeating_key_xor(string: &str, key: &str) -> String {
         .collect();
     hex::encode(string_encoded)
 }
+
+pub fn hamming_distance(s1: &str, s2: &str) -> u64 {
+    assert_eq!(s1.len(), s2.len());
+    let s1_byte = s1.as_bytes();
+    let s2_byte = s2.as_bytes();
+    s1_byte
+        .iter()
+        .zip(s2_byte)
+        .fold(0, |a, (b, c)| a + (*b ^ *c).count_ones() as u64)
+}
