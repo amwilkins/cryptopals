@@ -95,12 +95,31 @@ pub fn repeating_key_xor(string: &str, key: &str) -> String {
     hex::encode(string_encoded)
 }
 
-pub fn hamming_distance(s1: &str, s2: &str) -> u64 {
+pub fn hamming_distance(s1: &[u8], s2: &[u8]) -> u64 {
     assert_eq!(s1.len(), s2.len());
-    let s1_byte = s1.as_bytes();
-    let s2_byte = s2.as_bytes();
-    s1_byte
-        .iter()
-        .zip(s2_byte)
+    s1.iter()
+        .zip(s2)
         .fold(0, |a, (b, c)| a + (*b ^ *c).count_ones() as u64)
+}
+
+pub fn test_key_lengths(key_length: usize, byte_string: &[u8]) -> f64 {
+    let len = byte_string.len();
+    let mut i: usize = 0;
+    let mut total_dist = 0;
+    let mut chunk1;
+    let mut chunk2;
+
+    loop {
+        if i * 2 * key_length >= len {
+            break;
+        }
+
+        // First and second chunk of key_length bytes
+        chunk1 = &byte_string[i * key_length..(i + 1) * key_length];
+        chunk2 = &byte_string[(i + 1) * key_length..(i + 2) * key_length];
+
+        total_dist += hamming_distance(chunk1, chunk2) / (key_length as u64);
+        i += 1;
+    }
+    (total_dist as f64) / (i as f64 + 1.0)
 }

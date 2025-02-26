@@ -138,19 +138,28 @@ fn s1c6() {
     This code is going to turn out to be surprisingly useful later on. Breaking repeating-key XOR ("Vigenere") statistically is obviously an academic exercise, a "Crypto 101" thing. But more people "know how" to break it than can actually break it, and a similar technique breaks something much more important.
     */
 
-    //let s1c6_file = fs::read_to_string("src/6.txt")
-    //    .and_then(|text| Ok(text.replace("\n", "")))
-    //    .expect("Error reading file.");
-    //let s1c6_file_bytes = set_1::b64_to_byte(&s1c6_file);
+    let s1c6_file = fs::read_to_string("src/6.txt")
+        .and_then(|text| Ok(text.replace("\n", "")))
+        .expect("Error reading file.");
+    let s1c6_file_bytes = set_1::b64_to_byte(&s1c6_file);
+    let mut s1c6_key_leng_dists: Vec<(usize, f64)> = Vec::new();
+
+    for s1c6_key_size in 2..=40 {
+        let s1c6_dist = set_1::test_key_lengths(s1c6_key_size, &s1c6_file_bytes);
+        s1c6_key_leng_dists.push((s1c6_key_size, s1c6_dist));
+    }
+    s1c6_key_leng_dists.sort_by(|x, y| y.1.partial_cmp(&x.1).unwrap());
+    let s1c6_key_size = s1c6_key_leng_dists.pop().and_then(|x| Some(x.0)).unwrap();
+    println!("{}", s1c6_key_size)
 }
 
 fn main() -> Result<(), std::io::Error> {
     //let args = Cli::parse();
-    s1c1();
-    s1c2();
-    s1c3();
-    s1c4();
-    s1c5();
+    //s1c1();
+    //s1c2();
+    //s1c3();
+    //s1c4();
+    //s1c5();
     s1c6();
 
     Ok(())
