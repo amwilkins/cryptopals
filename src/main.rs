@@ -1,4 +1,3 @@
-use base64::{engine::general_purpose::STANDARD, Engine as _};
 use clap::Parser;
 use hex;
 use set_1;
@@ -84,18 +83,25 @@ fn s1c4() {
 
     let mut s1c4_best_score = f64::MIN;
     let mut s1c4_best_match = String::new();
+    let mut s1c4_best_key = u8::MIN;
 
     for line in lines {
         let line = line.unwrap();
-        let s1c4_result = detect_single_xor(&line);
-        let s1c4_message = s1c4_result.0;
+        let line_bytes = hex::decode(line).unwrap();
+        let s1c4_result = detect_single_xor(&line_bytes);
+        let s1c4_message = s1c4_result.2;
         let s1c4_score = s1c4_result.1;
+        let s1c4_key = s1c4_result.0;
         if s1c4_score > s1c4_best_score {
             s1c4_best_score = s1c4_score;
             s1c4_best_match = String::from(s1c4_message);
+            s1c4_best_key = s1c4_key;
         }
     }
-    println!("{}", s1c4_best_match);
+    println!(
+        "Best key: {}, Best Score: {}, Message: {}",
+        s1c4_best_key, s1c4_best_score, s1c4_best_match
+    );
 }
 fn s1c5() {
     println!("\nS01C05 Implement repeating-key XOR");
@@ -142,24 +148,41 @@ fn s1c6() {
         .and_then(|text| Ok(text.replace("\n", "")))
         .expect("Error reading file.");
     let s1c6_file_bytes = set_1::b64_to_byte(&s1c6_file);
-    let mut s1c6_key_leng_dists: Vec<(usize, f64)> = Vec::new();
+    let mut s1c6_key_length_dists: Vec<(usize, f64)> = Vec::new();
 
     for s1c6_key_size in 2..=40 {
         let s1c6_dist = set_1::test_key_lengths(s1c6_key_size, &s1c6_file_bytes);
-        s1c6_key_leng_dists.push((s1c6_key_size, s1c6_dist));
+        s1c6_key_length_dists.push((s1c6_key_size, s1c6_dist));
     }
-    s1c6_key_leng_dists.sort_by(|x, y| y.1.partial_cmp(&x.1).unwrap());
-    let s1c6_key_size = s1c6_key_leng_dists.pop().and_then(|x| Some(x.0)).unwrap();
-    println!("{}", s1c6_key_size)
+    s1c6_key_length_dists.sort_by(|x, y| y.1.partial_cmp(&x.1).unwrap());
+    let s1c6_key_size = s1c6_key_length_dists.pop().and_then(|x| Some(x.0)).unwrap();
+
+    let mut index;
+    let mut s1c6_byte_block: Vec<u8> = Vec::new();
+    let mut s1c6_key_bytes: Vec<u8> = Vec::new();
+
+    for i in 0..s1c6_key_size {
+        index = i;
+        s1c6_byte_block.clear();
+        // collect byte from multiples of s1c6_key_size
+        while index < s1c6_file_bytes.len() {
+            s1c6_byte_block.push(s1c6_file_bytes[index]);
+            index += s1c6_key_size
+        }
+        let s1c6_key_byte = set_1::detect_single_xor(&s1c6_byte_block).0;
+        s1c6_key_bytes.push(s1c6_key_byte)
+    }
+    let s1c6_key: String = s1c6_key_bytes.iter().map(|&byte| byte as char).collect();
+    println!("{}", s1c6_key);
 }
 
 fn main() -> Result<(), std::io::Error> {
     //let args = Cli::parse();
-    //s1c1();
-    //s1c2();
-    //s1c3();
-    //s1c4();
-    //s1c5();
+    s1c1();
+    s1c2();
+    s1c3();
+    s1c4();
+    s1c5();
     s1c6();
 
     Ok(())

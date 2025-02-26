@@ -60,29 +60,24 @@ pub fn calc_letter_freq_score(string: &str) -> f64 {
     score
 }
 
-pub fn detect_single_xor(string: &str) -> (String, f64) {
+pub fn detect_single_xor(string_bytes: &[u8]) -> (u8, f64, String) {
     //let byte_string = string.as_bytes().to_vec();
     let mut best_score = f64::MIN;
-    let mut key_byte: u16;
     let mut best_match = String::new();
+    let mut best_key: u8 = 0;
     for letter in 0..=255 {
-        key_byte = letter as u16;
-        let byte_decoded: Vec<u16> = hex::decode(string)
-            .unwrap()
-            .iter()
-            .map(|&byte| (byte as u16) ^ key_byte)
-            .collect();
-        let string_decoded = String::from_utf16(&byte_decoded).unwrap();
+        let byte_decoded: Vec<u8> = string_bytes.iter().map(|&byte| byte ^ letter).collect();
+        let string_decoded = String::from_utf8_lossy(&byte_decoded);
         let score = calc_letter_freq_score(&string_decoded);
 
         if score > best_score {
             best_score = score;
             best_match = String::from(string_decoded);
+            best_key = letter;
         }
     }
-    (best_match, best_score)
+    (best_key, best_score, best_match)
 }
-
 pub fn repeating_key_xor(string: &str, key: &str) -> String {
     let key_expanded: String = key.chars().cycle().take(string.len()).collect::<String>();
     let byte_key = key_expanded.as_bytes();
