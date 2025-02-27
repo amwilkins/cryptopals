@@ -1,10 +1,13 @@
 use clap::Parser;
 use hex;
-use set_1;
+use openssl;
+use openssl::aes::{aes_ige, AesKey};
+use set_1::{self, aes128_ecb_decrypt};
 use set_1::{calc_letter_freq_score, detect_single_xor};
 use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::str::from_utf8;
 
 #[derive(Parser)]
 struct Cli {
@@ -78,7 +81,7 @@ fn s1c4() {
     One of the 60-character strings in this file[https://cryptopals.com/static/challenge-data/4.txt] has been encrypted by single-character XOR.
     Find it.
     */
-    let file = File::open("src/4.txt").expect("Error reading file.");
+    let file = File::open("data/4.txt").expect("Error reading file.");
     let lines = BufReader::new(file).lines();
 
     let mut s1c4_best_score = f64::MIN;
@@ -144,7 +147,7 @@ fn s1c6() {
     This code is going to turn out to be surprisingly useful later on. Breaking repeating-key XOR ("Vigenere") statistically is obviously an academic exercise, a "Crypto 101" thing. But more people "know how" to break it than can actually break it, and a similar technique breaks something much more important.
     */
 
-    let s1c6_file = fs::read_to_string("src/6.txt")
+    let s1c6_file = fs::read_to_string("data/6.txt")
         .and_then(|text| Ok(text.replace("\n", "")))
         .expect("Error reading file.");
     let s1c6_file_bytes = set_1::b64_to_byte(&s1c6_file);
@@ -176,6 +179,67 @@ fn s1c6() {
     println!("{}", s1c6_key);
 }
 
+fn s1c7() {
+    println!("\nS01C07 Break repeating-key XOR");
+    /*
+    The Base64-encoded content in this file has been encrypted via AES-128 in ECB mode under the key
+    "YELLOW SUBMARINE".
+    (case-sensitive, without the quotes; exactly 16 characters; I like "YELLOW SUBMARINE" because it's exactly 16 bytes long, and now you do too).
+    Decrypt it. You know the key, after all.
+    Easiest way: use OpenSSL::Cipher and give it AES-128-ECB as the cipher.
+    */
+
+    let s1c7_file = fs::read_to_string("data/7.txt")
+        .and_then(|text| Ok(text.replace("\n", "")))
+        .expect("Error reading file.");
+    let s1c7_file_bytes = set_1::b64_to_byte(&s1c7_file);
+    let s1c7_key_bytes = "YELLOW SUBMARINE".as_bytes();
+
+    let _s1c7_message = String::from_utf8(aes128_ecb_decrypt(
+        s1c7_file_bytes.as_slice(),
+        s1c7_key_bytes,
+    ))
+    .unwrap();
+    //println!("{}", s1c7_message);
+}
+fn s1c8() {
+    println!("\nS01C08 Detect AES in ECB mode");
+    /*
+     In this file are a bunch of hex-encoded ciphertexts.
+    One of them has been encrypted with ECB.
+    Detect it.
+    Remember that the problem with ECB is that it is stateless and deterministic; the same 16 byte plaintext block will always produce the same 16 byte ciphertext.
+         */
+    let s1c8_file = fs::read_to_string("data/8.txt")
+        .unwrap()
+        .lines()
+        .map(|lines| hex::decode(lines).unwrap())
+        .collect::<Vec<_>>();
+
+    let mut s1c8_best_score = std::f64::MAX;
+    let mut s1c8_best_line = 0;
+
+    for (i, line) in s1c8_file.iter().enumerate() {
+        let mut s1c8_line_score = 0.0;
+
+        for (ci1, chunk1) in line.chunks(16).enumerate() {
+            for (ci2, chunk2) in line.chunks(16).enumerate() {
+                if ci1 == ci2 {
+                    continue;
+                }
+
+                s1c8_line_score += set_1::hamming_distance(chunk1, chunk2) as f64 / 16.0;
+            }
+        }
+        if s1c8_line_score < s1c8_best_score {
+            s1c8_best_score = s1c8_line_score;
+            s1c8_best_line = i;
+        }
+    }
+    println!("Detected line {}", s1c8_best_line);
+    assert_eq!(s1c8_best_line, 132)
+}
+
 fn main() -> Result<(), std::io::Error> {
     //let args = Cli::parse();
     s1c1();
@@ -184,6 +248,8 @@ fn main() -> Result<(), std::io::Error> {
     s1c4();
     s1c5();
     s1c6();
+    s1c7();
+    s1c8();
 
     Ok(())
 }

@@ -1,3 +1,4 @@
+use aes::cipher::{generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyInit};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use hex;
 use std::str;
@@ -117,4 +118,38 @@ pub fn test_key_lengths(key_length: usize, byte_string: &[u8]) -> f64 {
         i += 1;
     }
     (total_dist as f64) / (i as f64 + 1.0)
+}
+pub fn aes128_encrypt_block(block: &[u8], key: &[u8]) -> Vec<u8> {
+    assert_eq!(block.len(), 16);
+    assert_eq!(key.len(), 16);
+    let cipher = aes::Aes128::new_from_slice(key).unwrap();
+    let mut block = *GenericArray::from_slice(block);
+    cipher.encrypt_block(&mut block);
+    block.to_vec()
+}
+
+/// Decrypts a single block of ciphertext using AES-128.
+pub fn aes128_decrypt_block(block: &[u8], key: &[u8]) -> Vec<u8> {
+    assert_eq!(block.len(), 16);
+    assert_eq!(key.len(), 16);
+    let cipher = aes::Aes128::new_from_slice(key).unwrap();
+    let mut block = *GenericArray::from_slice(block);
+    cipher.decrypt_block(&mut block);
+    block.to_vec()
+}
+
+pub fn aes128_ecb_encrypt(input: &[u8], key: &[u8]) -> Vec<u8> {
+    assert_eq!(input.len() % 16, 0);
+    input
+        .chunks(16)
+        .flat_map(|chunk| aes128_encrypt_block(chunk, key))
+        .collect()
+}
+
+pub fn aes128_ecb_decrypt(input: &[u8], key: &[u8]) -> Vec<u8> {
+    assert_eq!(input.len() % 16, 0);
+    input
+        .chunks(16)
+        .flat_map(|chunk| aes128_decrypt_block(chunk, key))
+        .collect()
 }
