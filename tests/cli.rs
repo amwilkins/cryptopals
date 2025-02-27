@@ -1,4 +1,4 @@
-use set_1::hamming_distance;
+use cryptopals::hamming_distance;
 
 #[test]
 fn test_hamming_distance() {

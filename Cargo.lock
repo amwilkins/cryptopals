@@ -166,6 +166,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cryptopals"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "base64",
+ "clap",
+ "hex",
+ "openssl",
+]
+
+[[package]]
 name = "foreign-types"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -299,17 +310,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e4dccaaaf89514f546c693ddc140f729f958c247918a13380cccc6078391acc"
 dependencies = [
  "proc-macro2",
-]
-
-[[package]]
-name = "set_1"
-version = "0.1.0"
-dependencies = [
- "aes",
- "base64",
- "clap",
- "hex",
- "openssl",
 ]
 
 [[package]]
