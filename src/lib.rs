@@ -119,6 +119,17 @@ pub fn test_key_lengths(key_length: usize, byte_string: &[u8]) -> f64 {
     }
     (total_dist as f64) / (i as f64 + 1.0)
 }
+
+// XOR combine
+pub fn xor_encode(block: &[u8], key: &[u8]) -> Vec<u8> {
+    assert_eq!(block.len(), key.len());
+    let mut output = Vec::new();
+    for (a, b) in block.iter().zip(key.iter()) {
+        output.push(a ^ b);
+    }
+    output
+}
+/// Encrypts a single block of ciphertext using AES-128.
 pub fn aes128_encrypt_block(block: &[u8], key: &[u8]) -> Vec<u8> {
     assert_eq!(block.len(), 16);
     assert_eq!(key.len(), 16);
@@ -153,3 +164,30 @@ pub fn aes128_ecb_decrypt(input: &[u8], key: &[u8]) -> Vec<u8> {
         .flat_map(|chunk| aes128_decrypt_block(chunk, key))
         .collect()
 }
+
+pub fn pad_block_size(input: &[u8], block_size: usize) -> Vec<u8> {
+    assert!(
+        block_size < 128,
+        "Block size limited to 128, please use smaller block size."
+    );
+    let mut output = input.to_vec();
+    let pad_size = block_size - (input.len() % block_size);
+    output.append(&mut vec![pad_size as u8; pad_size]);
+
+    output
+}
+pub fn cbc_encrypt(input: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+    assert_eq!(input.len() % 16, 0);
+    let mut previous_block = iv.to_vec();
+    let mut output = Vec::new();
+    for chunk in input.chunks(16) {
+        let mut block = xor_encode(previous_block.as_slice(), chunk);
+        block = aes128_ecb_encrypt(block.as_slice(), key);
+        output.append(&mut block.clone());
+        previous_block = block;
+    }
+    output
+}
+
+//pub fn cbc_decrypt(string: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+//};
