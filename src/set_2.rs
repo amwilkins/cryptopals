@@ -33,17 +33,15 @@ fn s2c10() {
     println!("\nS02C10 ");
     let s2c10_key = "YELLOW SUBMARINE".as_bytes();
     let s2c10_text_bytes = pad_block_size(String::from("This is a secret message.").as_bytes(), 16);
-    let s1c10_file_bytes = pad_block_size(
-        fs::read_to_string("data/10.txt")
-            .unwrap()
-            .replace('\n', "")
-            .as_bytes(),
-        16,
-    );
+    let s1c10_file = fs::read_to_string("data/10.txt").unwrap().replace('\n', "");
+    let s1c10_file_bytes = pad_block_size(&b64_to_byte(&s1c10_file), 16);
 
-    let s2c10_encrypted = cbc_encrypt(&s2c10_text_bytes, s2c10_key, &['\x00' as u8; 16]);
-    println!("{:?}", s2c10_encrypted)
-    //let s2c10_decrypted = cbc_decrypt(s2c10_encrypted, s2c10_key, iv);
+    let s2c10_encrypted = cbc_encrypt(&s2c10_text_bytes, s2c10_key, &[0; 16]);
+    let s2c10_decrypted = cbc_decrypt(&s2c10_encrypted, s2c10_key, &[0; 16]);
+    println!("{:?}", String::from_utf8_lossy(&s2c10_decrypted));
+
+    let s2c10_decrypted_file = cbc_decrypt(&s1c10_file_bytes, s2c10_key, &[0; 16]);
+    println!("{:?}", String::from_utf8_lossy(&s2c10_decrypted_file));
 }
 pub fn run() {
     s2c9();

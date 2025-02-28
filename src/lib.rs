@@ -121,12 +121,13 @@ pub fn test_key_lengths(key_length: usize, byte_string: &[u8]) -> f64 {
 }
 
 // XOR combine
-pub fn xor_encode(block: &[u8], key: &[u8]) -> Vec<u8> {
-    assert_eq!(block.len(), key.len());
+pub fn xor_encode(block1: &[u8], block2: &[u8]) -> Vec<u8> {
+    assert_eq!(block1.len(), block2.len());
     let mut output = Vec::new();
-    for (a, b) in block.iter().zip(key.iter()) {
+    for (a, b) in block1.iter().zip(block2.iter()) {
         output.push(a ^ b);
     }
+
     output
 }
 /// Encrypts a single block of ciphertext using AES-128.
@@ -189,5 +190,15 @@ pub fn cbc_encrypt(input: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
     output
 }
 
-//pub fn cbc_decrypt(string: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
-//};
+pub fn cbc_decrypt(input: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+    assert_eq!(input.len() % 16, 0);
+    let mut previous_block = iv.to_vec();
+    let mut output = Vec::new();
+    for chunk in input.chunks(16) {
+        let block = aes128_ecb_decrypt(chunk, key);
+        let mut block = xor_encode(previous_block.as_slice(), block.as_slice());
+        output.append(&mut block);
+        previous_block = chunk.to_vec();
+    }
+    output
+}
