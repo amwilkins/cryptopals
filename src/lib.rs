@@ -1,6 +1,7 @@
 use aes::cipher::{generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyInit};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use hex;
+use rand::{random_range, RngCore};
 use std::str;
 
 pub fn hex_to_b64(hex_string: &str) -> String {
@@ -201,4 +202,58 @@ pub fn cbc_decrypt(input: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
         previous_block = chunk.to_vec();
     }
     output
+}
+
+pub fn generate_random_aes_key() -> Vec<u8> {
+    let key = rand::random_iter::<u8>().take(16).collect();
+    key
+}
+
+pub fn encryption_oracle(input: &str) -> Vec<u8> {
+    let mut rng = rand::rng();
+
+    // add random bytes before and after message
+    let prefix = rand::random_iter::<u8>()
+        .take(random_range(5..=10))
+        .collect();
+    let suffix = rand::random_iter::<u8>()
+        .take(random_range(5..=10))
+        .collect();
+    let judas_marker = vec![0; 64];
+    let padded_input_bytes = pad_block_size(
+        [prefix, judas_marker, input.as_bytes().to_vec(), suffix]
+            .concat()
+            .as_slice(),
+        16,
+    );
+
+    let cbc_flag = rand::random_bool(0.5);
+    let key = generate_random_aes_key();
+    let mut _ciphertext = Vec::new();
+
+    // encrypt based on cbc_flag
+    if cbc_flag {
+        let mut iv = [0u8; 16];
+        rng.fill_bytes(&mut iv);
+        _ciphertext = cbc_encrypt(&padded_input_bytes, &key, &iv)
+    } else {
+        _ciphertext = aes128_ecb_encrypt(&padded_input_bytes, &key)
+    }
+    _ciphertext
+}
+
+pub fn detect_block_cipher_mode(f: fn(&str) -> Vec<u8>) -> (String, Vec<u8>) {
+    let input = "x".repeat(64);
+    let ciphertext = f(input.as_str());
+    let mut prev_block = vec![0; 16];
+
+    // look for repeated blocks
+    for block in ciphertext.chunks(16) {
+        if block == prev_block {
+            return ("ECB".to_string(), ciphertext);
+        } else {
+            prev_block = block.to_vec();
+        }
+    }
+    return ("CBC".to_string(), ciphertext);
 }

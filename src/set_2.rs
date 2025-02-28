@@ -31,19 +31,47 @@ fn s2c10() {
     The file here is intelligible (somewhat) when CBC decrypted against "YELLOW SUBMARINE" with an IV of all ASCII 0 (\x00\x00\x00 &c)
     */
     println!("\nS02C10 ");
+
     let s2c10_key = "YELLOW SUBMARINE".as_bytes();
     let s2c10_text_bytes = pad_block_size(String::from("This is a secret message.").as_bytes(), 16);
-    let s1c10_file = fs::read_to_string("data/10.txt").unwrap().replace('\n', "");
-    let s1c10_file_bytes = pad_block_size(&b64_to_byte(&s1c10_file), 16);
 
+    // encrypt then decrypt
     let s2c10_encrypted = cbc_encrypt(&s2c10_text_bytes, s2c10_key, &[0; 16]);
     let s2c10_decrypted = cbc_decrypt(&s2c10_encrypted, s2c10_key, &[0; 16]);
+
     println!("{:?}", String::from_utf8_lossy(&s2c10_decrypted));
 
-    let s2c10_decrypted_file = cbc_decrypt(&s1c10_file_bytes, s2c10_key, &[0; 16]);
-    println!("{:?}", String::from_utf8_lossy(&s2c10_decrypted_file));
+    //let s1c10_file = fs::read_to_string("data/10.txt").unwrap().replace('\n', "");
+    //let s1c10_file_bytes = pad_block_size(&b64_to_byte(&s1c10_file), 16);
+    //let s2c10_decrypted_file = cbc_decrypt(&s1c10_file_bytes, s2c10_key, &[0; 16]);
+    //println!("{:?}", String::from_utf8_lossy(&s2c10_decrypted_file));
+}
+fn s2c11() {
+    /* S02C11 An ECB/CBC detection oracle
+    Now that you have ECB and CBC working:
+    Write a function to generate a random AES key; that's just 16 random bytes.
+    Write a function that encrypts data under an unknown key --- that is, a function that generates a random key and encrypts under it.
+    The function should look like:
+    encryption_oracle(your-input)
+    => [MEANINGLESS JIBBER JABBER]
+    Under the hood, have the function append 5-10 bytes (count chosen randomly) before the plaintext and 5-10 bytes after the plaintext.
+    Now, have the function choose to encrypt under ECB 1/2 the time, and under CBC the other half (just use random IVs each time for CBC). Use rand(2) to decide which to use.
+    Detect the block cipher mode the function is using each time. You should end up with a piece of code that, pointed at a block box that might be encrypting ECB or CBC, tells you which one is happening.
+        */
+    println!("\nS02C11 ");
+    let s2c11_random_key = generate_random_aes_key();
+    println!("Randomly generated AES key: {:?}", s2c11_random_key);
+
+    // detecting which block cipher mode is being used
+    let (s2c11_detected_encryption, s2c11_ciphertext) = detect_block_cipher_mode(encryption_oracle);
+
+    println!("Detected encryption method: {}", s2c11_detected_encryption);
+    for i in s2c11_ciphertext.chunks(16) {
+        println!("{:?}", i)
+    }
 }
 pub fn run() {
     s2c9();
     s2c10();
+    s2c11();
 }
