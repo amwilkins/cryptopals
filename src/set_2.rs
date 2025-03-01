@@ -30,7 +30,7 @@ fn s2c10() {
     Implement CBC mode by hand by taking the ECB function you wrote earlier, making it encrypt instead of decrypt (verify this by decrypting whatever you encrypt to test), and using your XOR function from the previous exercise to combine them.
     The file here is intelligible (somewhat) when CBC decrypted against "YELLOW SUBMARINE" with an IV of all ASCII 0 (\x00\x00\x00 &c)
     */
-    println!("\nS02C10 ");
+    println!("\nS02C10 Implement CBC mode");
 
     let s2c10_key = "YELLOW SUBMARINE".as_bytes();
     let s2c10_text_bytes = pad_block_size(String::from("This is a secret message.").as_bytes(), 16);
@@ -58,7 +58,7 @@ fn s2c11() {
     Now, have the function choose to encrypt under ECB 1/2 the time, and under CBC the other half (just use random IVs each time for CBC). Use rand(2) to decide which to use.
     Detect the block cipher mode the function is using each time. You should end up with a piece of code that, pointed at a block box that might be encrypting ECB or CBC, tells you which one is happening.
         */
-    println!("\nS02C11 ");
+    println!("\nS02C11 An ECB/CBC detection oracle");
     let s2c11_random_key = generate_random_aes_key();
     println!("Randomly generated AES key: {:?}", s2c11_random_key);
 
@@ -70,8 +70,88 @@ fn s2c11() {
         println!("{:?}", i)
     }
 }
+
+fn s2c12() {
+    /* S02C12 Byte-at-a-time ECB decryption (Simple)
+     Copy your oracle function to a new function that encrypts buffers under ECB mode using a consistent but unknown key (for instance, assign a single random key, once, to a global variable).
+    Now take that same function and have it append to the plaintext, BEFORE ENCRYPTING, the following string:
+    Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
+    aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq
+    dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg
+    YnkK
+    Spoiler alert.
+    Do not decode this string now. Don't do it.
+    Base64 decode the string before appending it. Do not base64 decode the string by hand; make your code do it. The point is that you don't know its contents.
+    What you have now is a function that produces:
+    AES-128-ECB(your-string || unknown-string, random-key)
+    It turns out: you can decrypt "unknown-string" with repeated calls to the oracle function!
+    Here's roughly how:
+        1. Feed identical bytes of your-string to the function 1 at a time --- start with 1 byte ("A"), then "AA", then "AAA" and so on. Discover the block size of the cipher. You know it, but do this step anyway.
+        2. Detect that the function is using ECB. You already know, but do this step anyways.
+        3. Knowing the block size, craft an input block that is exactly 1 byte short (for instance, if the block size is 8 bytes, make "AAAAAAA"). Think about what the oracle function is going to put in that last byte position.
+        4. Make a dictionary of every possible last byte by feeding different strings to the oracle; for instance, "AAAAAAAA", "AAAAAAAB", "AAAAAAAC", remembering the first block of each invocation.
+        5. Match the output of the one-byte-short input to one of the entries in your dictionary. You've now discovered the first byte of unknown-string.
+        6. Repeat for the next byte.
+         */
+    println!("\nS02C12 Byte-at-a-time ECB decryption (Simple)");
+    let s2c12_secret_key = generate_random_aes_key();
+    println!("Secret key: {:?}", &s2c12_secret_key);
+    let mut s2c12_block_size = 0;
+    for i in 1..=64 {
+        let detection_block = vec![0u8; i];
+
+        let s2c12_ciphertext = s2s12_oracle(
+            [detection_block.as_slice(), detection_block.as_slice()]
+                .concat()
+                .as_slice(),
+            &s2c12_secret_key,
+        );
+
+        if s2c12_ciphertext
+            .chunks(i)
+            .next()
+            .unwrap()
+            .eq(s2c12_ciphertext.chunks(i).nth(1).unwrap())
+        {
+            s2c12_block_size = i;
+            break;
+        }
+    }
+    println!("Found block size {}", s2c12_block_size);
+
+    let mut s2c12_crafted_bytes = vec![65u8; 127];
+    let mut s2c12_found_key: Vec<u8> = Vec::new();
+
+    for i in (0..128).rev() {
+        println!("Cracking byte: {}", i);
+        let s2c12_target = s2s12_oracle(&vec![65; i], &s2c12_secret_key);
+
+        let mut s2c12_matched = false;
+        for i in 0..255 {
+            let s2c12_oracle_input = [s2c12_crafted_bytes.as_ref(), [i].as_ref()].concat();
+            let s2c12_oracle_output = s2s12_oracle(&s2c12_oracle_input, &s2c12_secret_key);
+
+            if s2c12_oracle_output[16..128] == s2c12_target[16..128] {
+                s2c12_matched = true;
+                s2c12_found_key.push(i as u8);
+                s2c12_crafted_bytes = [s2c12_crafted_bytes[1..].to_vec(), [i].to_vec()].concat();
+                println!(
+                    "Cracked: [{}]",
+                    String::from_utf8_lossy(s2c12_found_key.as_ref())
+                );
+                break;
+            }
+        }
+        if !s2c12_matched {
+            break;
+        }
+    }
+    println!("\nFinal discovered key: {:?}", s2c12_found_key);
+}
+
 pub fn run() {
     s2c9();
     s2c10();
     s2c11();
+    s2c12();
 }

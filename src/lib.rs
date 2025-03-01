@@ -242,8 +242,19 @@ pub fn encryption_oracle(input: &str) -> Vec<u8> {
     _ciphertext
 }
 
+pub fn s2s12_oracle(input: &[u8], key: &[u8]) -> Vec<u8> {
+    let suffix = {
+        let suffix = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK";
+        STANDARD.decode(suffix).unwrap()
+    };
+    aes128_ecb_encrypt(
+        pad_block_size([input, suffix.as_slice()].concat().as_slice(), 16).as_slice(),
+        key,
+    )
+}
+
 pub fn detect_block_cipher_mode(f: fn(&str) -> Vec<u8>) -> (String, Vec<u8>) {
-    let input = "x".repeat(64);
+    let input = "x".repeat(32);
     let ciphertext = f(input.as_str());
     let mut prev_block = vec![0; 16];
 
